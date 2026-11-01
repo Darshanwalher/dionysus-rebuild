@@ -30,6 +30,14 @@ const projectSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    architectureGraph: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    dependencyGraph: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   {
     timestamps: true,

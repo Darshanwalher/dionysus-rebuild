@@ -382,7 +382,136 @@ const pollRepo = async (githubUrl, projectId) => {
   return saved;
 };
 
+/**
+ * Helper to parse GitHub URL into owner and repo
+ */
+const parseGithubUrl = (githubUrl) => {
+  if (!githubUrl) return null;
+  const clean = githubUrl
+    .trim()
+    .replace(/\.git$/i, '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/^github\.com\//i, '');
+  const parts = clean.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  return {
+    owner: parts[0],
+    repo: parts[1],
+  };
+};
+
+/**
+ * Fetch basic metadata for a repository
+ */
+const getRepoMetadata = async (owner, repo) => {
+  const octokit = getOctokit();
+  const { data } = await octokit.rest.repos.get({ owner, repo });
+  return {
+    name: data.name,
+    fullName: data.full_name,
+    description: data.description,
+    defaultBranch: data.default_branch || 'main',
+    stars: data.stargazers_count,
+    forks: data.forks_count,
+    language: data.language,
+  };
+};
+
+/**
+ * Fetch repository recursive tree using GitHub Git Data API
+ */
+const fetchRepoTree = async (owner, repo, branch = null) => {
+  const octokit = getOctokit();
+  let targetBranch = branch;
+  if (!targetBranch) {
+    const meta = await getRepoMetadata(owner, repo);
+    targetBranch = meta.defaultBranch;
+  }
+
+  try {
+    const { data } = await octokit.rest.git.getTree({
+      owner,
+      repo,
+      tree_sha: targetBranch,
+      recursive: '1',
+    });
+
+    if (!data || !data.tree) {
+      return [];
+    }
+
+    return data.tree
+      .filter((item) => item.type === 'blob')
+      .map((item) => ({
+        path: item.path,
+        sha: item.sha,
+        size: item.size || 0,
+      }));
+  } catch (error) {
+    console.warn(`⚠️ Git Tree API failed for ${owner}/${repo}: ${error.message}`);
+    throw error;
+  }
+};
+
+/**
+ * Fetch content of a single file from GitHub
+ */
+const fetchFileContent = async (owner, repo, filePath, branch = null) => {
+  const octokit = getOctokit();
+  try {
+    const params = {
+      owner,
+      repo,
+      path: filePath,
+    };
+    if (branch) params.ref = branch;
+
+    const { data } = await octokit.rest.repos.getContent(params);
+
+    if (data.content && data.encoding === 'base64') {
+      return Buffer.from(data.content, 'base64').toString('utf-8');
+    } else if (typeof data === 'string') {
+      return data;
+    } else if (data.download_url) {
+      const resp = await axios.get(data.download_url, {
+        headers: process.env.GITHUB_PERSONAL_ACCESS_TOKEN
+          ? { Authorization: `token ${process.env.GITHUB_PERSONAL_ACCESS_TOKEN}` }
+          : {},
+      });
+      return typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
+    }
+    return '';
+  } catch (error) {
+    console.warn(`⚠️ Failed to fetch file ${filePath}: ${error.message}`);
+    return null;
+  }
+};
+
+/**
+ * Fetch multiple files concurrently with rate limit and concurrency control
+ */
+const fetchBatchFileContents = async (owner, repo, filePaths, branch = null, concurrency = 5) => {
+  const results = [];
+  for (let i = 0; i < filePaths.length; i += concurrency) {
+    const chunk = filePaths.slice(i, i + concurrency);
+    const chunkResults = await Promise.all(
+      chunk.map(async (filePath) => {
+        const content = await fetchFileContent(owner, repo, filePath, branch);
+        return { source: filePath, content };
+      })
+    );
+    results.push(...chunkResults.filter((r) => r.content !== null));
+  }
+  return results;
+};
 module.exports = {
+  parseGithubUrl,
+  getRepoMetadata,
+  fetchRepoTree,
+  fetchFileContent,
+  fetchBatchFileContents,
+  IGNORE_FILES,
+  shouldProcessFile,
   cloneAndReadRepo,
   generateFileTreeGraph,
   generateDocumentation,

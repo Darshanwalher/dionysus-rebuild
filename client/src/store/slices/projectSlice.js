@@ -88,6 +88,34 @@ export const linkRepo = createAsyncThunk(
   }
 );
 
+export const generateArchitecture = createAsyncThunk(
+  "project/generateArchitecture",
+  async ({ projectId, force = false }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post(`/github/${projectId}/architecture`, { force });
+      return data.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to generate architecture"
+      );
+    }
+  }
+);
+
+export const generateDependencies = createAsyncThunk(
+  "project/generateDependencies",
+  async ({ projectId, force = false }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post(`/github/${projectId}/dependencies`, { force });
+      return data.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to generate dependencies"
+      );
+    }
+  }
+);
+
 export const pollCommits = createAsyncThunk(
   "project/pollCommits",
   async (projectId, { rejectWithValue }) => {
@@ -226,6 +254,12 @@ const initialState = {
   questions: [],
   meetings: [],
   isLoading: false,
+  architectureGraph: null,
+  dependencyGraph: null,
+  isArchitectureLoading: false,
+  isDependencyLoading: false,
+  architectureError: null,
+  dependencyError: null,
   isActionLoading: false,
   error: null,
 };
@@ -243,6 +277,40 @@ const projectSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+
+      // Generate Architecture
+      .addCase(generateArchitecture.pending, (state) => {
+        state.isArchitectureLoading = true;
+        state.architectureError = null;
+      })
+      .addCase(generateArchitecture.fulfilled, (state, action) => {
+        state.isArchitectureLoading = false;
+        state.architectureGraph = action.payload;
+        if (state.currentProject) {
+          state.currentProject.architectureGraph = action.payload;
+        }
+      })
+      .addCase(generateArchitecture.rejected, (state, action) => {
+        state.isArchitectureLoading = false;
+        state.architectureError = action.payload;
+      })
+      // Generate Dependencies
+      .addCase(generateDependencies.pending, (state) => {
+        state.isDependencyLoading = true;
+        state.dependencyError = null;
+      })
+      .addCase(generateDependencies.fulfilled, (state, action) => {
+        state.isDependencyLoading = false;
+        state.dependencyGraph = action.payload;
+        if (state.currentProject) {
+          state.currentProject.dependencyGraph = action.payload;
+        }
+      })
+      .addCase(generateDependencies.rejected, (state, action) => {
+        state.isDependencyLoading = false;
+        state.dependencyError = action.payload;
+      })
+
       // Fetch Projects
       .addCase(fetchProjects.pending, (state) => {
         state.isLoading = true;
@@ -262,6 +330,8 @@ const projectSlice = createSlice({
       .addCase(fetchProject.fulfilled, (state, action) => {
         state.isLoading = false;
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
       })
       .addCase(fetchProject.rejected, (state, action) => {
         state.isLoading = false;
@@ -286,6 +356,8 @@ const projectSlice = createSlice({
       .addCase(updateProject.fulfilled, (state, action) => {
         state.isActionLoading = false;
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
         state.projects = state.projects.map((p) =>
           p._id === action.payload._id ? { ...p, name: action.payload.name } : p
         );
@@ -316,6 +388,8 @@ const projectSlice = createSlice({
       .addCase(linkRepo.fulfilled, (state, action) => {
         state.isActionLoading = false;
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
       })
       .addCase(linkRepo.rejected, (state, action) => {
         state.isActionLoading = false;
@@ -328,6 +402,8 @@ const projectSlice = createSlice({
       .addCase(pollCommits.fulfilled, (state, action) => {
         state.isActionLoading = false;
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
       })
       .addCase(pollCommits.rejected, (state, action) => {
         state.isActionLoading = false;
@@ -358,6 +434,8 @@ const projectSlice = createSlice({
       // Save Note
       .addCase(saveNote.fulfilled, (state, action) => {
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
       })
       // Process Meeting
       .addCase(processMeeting.pending, (state) => {
@@ -384,6 +462,8 @@ const projectSlice = createSlice({
       // Invite User
       .addCase(inviteUser.fulfilled, (state, action) => {
         state.currentProject = action.payload;
+        state.architectureGraph = action.payload.architectureGraph || null;
+        state.dependencyGraph = action.payload.dependencyGraph || null;
       });
   },
 });
