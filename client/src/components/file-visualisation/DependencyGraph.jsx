@@ -18,7 +18,7 @@ import NodeDetailPanel from "./panels/NodeDetailPanel";
 import { getLayoutedElements, exportGraphAsJSON } from "@/lib/graphUtils";
 import { getEdgeStyle } from "@/lib/graphStyles";
 import { toast } from "sonner";
-import { RefreshCw, GitBranch, AlertCircle } from "lucide-react";
+import { RefreshCw, GitBranch, AlertCircle, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const nodeTypes = {
@@ -34,7 +34,7 @@ function DependencyGraphFlow({
   isFullscreen,
 }) {
   const reactFlowWrapper = useRef(null);
-  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
 
   const [direction, setDirection] = useState("LR");
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,6 +96,7 @@ function DependencyGraphFlow({
           id: edge.id || `e_${edge.source}_${edge.target}`,
           source: edge.source,
           target: edge.target,
+          type: "smoothstep",
           label: edge.symbols && edge.symbols.length > 0 && edge.symbols[0] !== "*side-effect*"
             ? edge.symbols.slice(0, 2).join(", ")
             : "",
@@ -108,11 +109,11 @@ function DependencyGraphFlow({
           labelStyle: {
             fill: "var(--muted-foreground)",
             fontSize: 9,
-            fontFamily: "monospace",
+            fontFamily: "JetBrains Mono, monospace",
           },
           labelBgStyle: {
-            fill: "var(--card)",
-            fillOpacity: 0.9,
+            fill: "color-mix(in oklch, var(--card) 95%, transparent)",
+            fillOpacity: 0.95,
             stroke: "var(--border)",
             strokeWidth: 1,
             rx: 3,
@@ -137,7 +138,7 @@ function DependencyGraphFlow({
       initialNodes,
       initialEdges,
       direction,
-      { nodeWidth: 260, nodeHeight: 100, nodesep: 40, ranksep: 60 }
+      { nodeWidth: 270, nodeHeight: 110, nodesep: 40, ranksep: 70 }
     );
 
     setNodes(layoutedNodes);
@@ -169,8 +170,9 @@ function DependencyGraphFlow({
         ...node,
         style: {
           ...node.style,
-          opacity: match ? 1 : 0.18,
-          transition: "opacity 0.2s ease",
+          opacity: match ? 1 : 0.15,
+          transition: "opacity 0.25s ease, filter 0.25s ease",
+          filter: match ? "none" : "grayscale(80%)",
         },
       };
     });
@@ -186,8 +188,8 @@ function DependencyGraphFlow({
       const isConnected = isOutgoing || isIncoming;
 
       let strokeColor = "#64748b";
-      if (isOutgoing) strokeColor = "#3b82f6"; // blue outgoing
-      if (isIncoming) strokeColor = "#10b981"; // emerald incoming
+      if (isOutgoing) strokeColor = "#38bdf8"; // blue outgoing
+      if (isIncoming) strokeColor = "#34d399"; // emerald incoming
 
       return {
         ...edge,
@@ -196,7 +198,7 @@ function DependencyGraphFlow({
           ...edge.style,
           stroke: isConnected ? strokeColor : "#3f3f46",
           strokeWidth: isConnected ? 2.5 : 1,
-          opacity: isConnected ? 1 : 0.2,
+          opacity: isConnected ? 1 : 0.18,
         },
       };
     });
@@ -209,6 +211,20 @@ function DependencyGraphFlow({
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
   }, []);
+
+  const handleSelectNode = useCallback(
+    (nodeId) => {
+      setSelectedNodeId(nodeId);
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (targetNode && targetNode.position) {
+        setCenter(targetNode.position.x + 135, targetNode.position.y + 55, {
+          duration: 500,
+          zoom: Math.max(zoomLevel, 0.9),
+        });
+      }
+    },
+    [nodes, setCenter, zoomLevel]
+  );
 
   const handleResetView = () => {
     fitView({ padding: 0.15, duration: 300 });
@@ -224,7 +240,7 @@ function DependencyGraphFlow({
     const bbox = reactFlowWrapper.current.getBoundingClientRect();
     const serializer = new XMLSerializer();
     const content = serializer.serializeToString(svgEl);
-    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}">${content}</svg>`;
+    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}"><rect width="100%" height="100%" fill="#131418"/>${content}</svg>`;
     const blob = new Blob([fullSvg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -248,12 +264,19 @@ function DependencyGraphFlow({
 
   if (isLoading && rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 space-y-4 min-h-[500px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-cyan-500" />
-        <div className="text-center">
-          <h4 className="text-sm font-semibold text-foreground">Analyzing Code Dependencies</h4>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Performing static analysis on ES imports, requires, exports, and circular dependencies...
+      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[520px]">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 flex items-center justify-center animate-pulse">
+            <Cpu className="h-8 w-8 text-cyan-400" />
+          </div>
+          <RefreshCw className="h-5 w-5 animate-spin text-cyan-400 absolute -bottom-1 -right-1" />
+        </div>
+        <div className="text-center max-w-sm space-y-1.5">
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">
+            Mapping Code Dependencies
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Parsing ES imports, exports, CommonJS require calls, and resolving cross-file module paths...
           </p>
         </div>
       </div>
@@ -262,13 +285,17 @@ function DependencyGraphFlow({
 
   if (error && rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-3 min-h-[450px]">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <h4 className="text-sm font-semibold text-foreground">Dependency Analysis Failed</h4>
-        <p className="text-xs text-muted-foreground text-center max-w-md">{error}</p>
-        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="mt-2 text-xs">
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
+        <div className="h-12 w-12 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+          <AlertCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <div className="text-center max-w-md space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">Dependency Mapping Failed</h4>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Retry Analysis
+          Retry Mapping
         </Button>
       </div>
     );
@@ -276,14 +303,19 @@ function DependencyGraphFlow({
 
   if (rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-3 min-h-[450px]">
-        <GitBranch className="h-10 w-10 text-muted-foreground opacity-60" />
-        <h4 className="text-sm font-semibold text-foreground">No Dependencies Discovered</h4>
-        <p className="text-xs text-muted-foreground text-center max-w-md">
-          Analyze source files to map imports, exports, and dependency chains.
-        </p>
-        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="mt-2 text-xs">
-          Analyze Dependencies
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
+        <div className="h-12 w-12 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-center">
+          <GitBranch className="h-6 w-6 text-muted-foreground opacity-70" />
+        </div>
+        <div className="text-center max-w-sm space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">No Dependency Graph Generated</h4>
+          <p className="text-xs text-muted-foreground">
+            Perform static source-code analysis to uncover actual module dependency relationships.
+          </p>
+        </div>
+        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
+          <GitBranch className="h-3.5 w-3.5 mr-1.5" />
+          Analyze Code Dependencies
         </Button>
       </div>
     );
@@ -291,8 +323,8 @@ function DependencyGraphFlow({
 
   return (
     <div
-      className="relative flex flex-col w-full"
-      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "680px" }}
+      className="relative flex flex-col w-full overflow-hidden"
+      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "690px" }}
       ref={reactFlowWrapper}
     >
       {/* Controls Bar */}
@@ -330,7 +362,7 @@ function DependencyGraphFlow({
       />
 
       {/* React Flow Canvas */}
-      <div className="relative flex-1 w-full h-full bg-background/50">
+      <div className="relative flex-1 w-full h-full bg-background/40">
         <ReactFlow
           nodes={filteredNodes}
           edges={styledEdges}
@@ -346,14 +378,17 @@ function DependencyGraphFlow({
           fitViewOptions={{ padding: 0.15 }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="var(--border)" gap={20} size={1} />
-          <Controls showInteractive={false} className="!border-border/60 !bg-card !shadow-md" />
+          <Background color="var(--border)" gap={24} size={1} />
+          <Controls
+            showInteractive={false}
+            className="!border-border/60 !bg-card/90 !backdrop-blur-md !shadow-lg !rounded-lg"
+          />
           {showMinimap && (
             <MiniMap
               nodeStrokeColor="#71717a"
               nodeColor="#27272a"
               nodeBorderRadius={6}
-              className="!border-border/60 !bg-card/90 !rounded-lg !shadow-lg"
+              className="!border-border/60 !bg-card/90 !backdrop-blur-md !rounded-xl !shadow-2xl"
             />
           )}
         </ReactFlow>
@@ -364,10 +399,10 @@ function DependencyGraphFlow({
             node={selectedNode}
             allNodes={nodes}
             allEdges={edges}
-            mode="dependency"
+            _mode="dependency"
             githubUrl={githubUrl}
             onClose={() => setSelectedNodeId(null)}
-            onSelectNode={(id) => setSelectedNodeId(id)}
+            onSelectNode={handleSelectNode}
           />
         )}
       </div>

@@ -18,97 +18,109 @@ export const COMPONENT_TYPE_META = {
   component: {
     label: "Component",
     icon: Component,
-    color: "#3b82f6", // blue
-    bg: "rgba(59, 130, 246, 0.12)",
-    border: "rgba(59, 130, 246, 0.4)",
-    badge: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+    color: "#38bdf8", // Sky blue
+    bg: "rgba(56, 189, 248, 0.10)",
+    border: "rgba(56, 189, 248, 0.35)",
+    glow: "rgba(56, 189, 248, 0.20)",
+    badge: "border-sky-500/30 text-sky-400 bg-sky-500/10",
   },
   page: {
     label: "Page / View",
     icon: Layout,
-    color: "#8b5cf6", // purple
-    bg: "rgba(139, 92, 246, 0.12)",
-    border: "rgba(139, 92, 246, 0.4)",
-    badge: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+    color: "#818cf8", // Indigo
+    bg: "rgba(129, 140, 248, 0.10)",
+    border: "rgba(129, 140, 248, 0.35)",
+    glow: "rgba(129, 140, 248, 0.20)",
+    badge: "border-indigo-500/30 text-indigo-400 bg-indigo-500/10",
   },
   controller: {
     label: "Controller",
     icon: Server,
-    color: "#a855f7", // violet
-    bg: "rgba(168, 85, 247, 0.12)",
-    border: "rgba(168, 85, 247, 0.4)",
-    badge: "border-violet-500/30 text-violet-400 bg-violet-500/10",
+    color: "#c084fc", // Purple
+    bg: "rgba(192, 132, 252, 0.10)",
+    border: "rgba(192, 132, 252, 0.35)",
+    glow: "rgba(192, 132, 252, 0.20)",
+    badge: "border-purple-500/30 text-purple-400 bg-purple-500/10",
   },
   service: {
     label: "Service",
     icon: Cpu,
-    color: "#10b981", // emerald
-    bg: "rgba(16, 185, 129, 0.12)",
-    border: "rgba(16, 185, 129, 0.4)",
+    color: "#34d399", // Emerald
+    bg: "rgba(52, 211, 153, 0.10)",
+    border: "rgba(52, 211, 153, 0.35)",
+    glow: "rgba(52, 211, 153, 0.20)",
     badge: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10",
   },
   model: {
     label: "Model / Schema",
     icon: Database,
-    color: "#f59e0b", // amber
-    bg: "rgba(245, 158, 11, 0.12)",
-    border: "rgba(245, 158, 11, 0.4)",
+    color: "#fbbf24", // Amber
+    bg: "rgba(251, 191, 36, 0.10)",
+    border: "rgba(251, 191, 36, 0.35)",
+    glow: "rgba(251, 191, 36, 0.20)",
     badge: "border-amber-500/30 text-amber-400 bg-amber-500/10",
   },
   middleware: {
     label: "Middleware",
     icon: Shield,
-    color: "#f97316", // orange
-    bg: "rgba(249, 115, 22, 0.12)",
-    border: "rgba(249, 115, 22, 0.4)",
+    color: "#fb923c", // Orange
+    bg: "rgba(251, 146, 60, 0.10)",
+    border: "rgba(251, 146, 60, 0.35)",
+    glow: "rgba(251, 146, 60, 0.20)",
     badge: "border-orange-500/30 text-orange-400 bg-orange-500/10",
   },
   route: {
-    label: "Route / Endpoint",
+    label: "Route / API",
     icon: Route,
-    color: "#06b6d4", // cyan
-    bg: "rgba(6, 182, 212, 0.12)",
-    border: "rgba(6, 182, 212, 0.4)",
+    color: "#22d3ee", // Cyan
+    bg: "rgba(34, 211, 238, 0.10)",
+    border: "rgba(34, 211, 238, 0.35)",
+    glow: "rgba(34, 211, 238, 0.20)",
     badge: "border-cyan-500/30 text-cyan-400 bg-cyan-500/10",
   },
   database: {
     label: "Database",
     icon: HardDrive,
-    color: "#eab308", // yellow
-    bg: "rgba(234, 179, 8, 0.12)",
-    border: "rgba(234, 179, 8, 0.4)",
+    color: "#facc15", // Yellow
+    bg: "rgba(250, 204, 21, 0.10)",
+    border: "rgba(250, 204, 21, 0.35)",
+    glow: "rgba(250, 204, 21, 0.20)",
     badge: "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
   },
   external: {
     label: "External Service",
     icon: Globe,
-    color: "#ec4899", // pink
-    bg: "rgba(236, 72, 153, 0.12)",
-    border: "rgba(236, 72, 153, 0.4)",
+    color: "#f472b6", // Pink
+    bg: "rgba(244, 114, 182, 0.10)",
+    border: "rgba(244, 114, 182, 0.35)",
+    glow: "rgba(244, 114, 182, 0.20)",
     badge: "border-pink-500/30 text-pink-400 bg-pink-500/10",
   },
   worker: {
     label: "Background Worker",
     icon: Workflow,
-    color: "#14b8a6", // teal
-    bg: "rgba(20, 184, 166, 0.12)",
-    border: "rgba(20, 184, 166, 0.4)",
+    color: "#2dd4bf", // Teal
+    bg: "rgba(45, 212, 191, 0.10)",
+    border: "rgba(45, 212, 191, 0.35)",
+    glow: "rgba(45, 212, 191, 0.20)",
     badge: "border-teal-500/30 text-teal-400 bg-teal-500/10",
   },
   ai: {
-    label: "AI / ML Service",
+    label: "AI / LLM Service",
     icon: Sparkles,
-    color: "#d946ef", // fuchsia
-    bg: "rgba(217, 70, 239, 0.12)",
-    border: "rgba(217, 70, 239, 0.4)",
+    color: "#e879f9", // Fuchsia
+    bg: "rgba(232, 121, 249, 0.10)",
+    border: "rgba(232, 121, 249, 0.35)",
+    glow: "rgba(232, 121, 249, 0.20)",
     badge: "border-fuchsia-500/30 text-fuchsia-400 bg-fuchsia-500/10",
   },
   config: {
     label: "Configuration",
     icon: Settings,
-    color: "#71717a", // zinc
-    bg: "rgba(113, 113, 122, 0.12)",
-    border: "rgba(113, 113, 122, 0.4)",
+    color: "#a1a1aa", // Zinc
+    bg: "rgba(161, 161, 170, 0.10)",
+    border: "rgba(161, 161, 170, 0.35)",
+    glow: "rgba(161, 161, 170, 0.15)",
     badge: "border-zinc-500/30 text-zinc-400 bg-zinc-500/10",
   },
 };
@@ -118,10 +130,11 @@ export const getComponentMeta = (type) => {
   return COMPONENT_TYPE_META[cleanType] || {
     label: type || "Component",
     icon: FileCode,
-    color: "#a1a1aa",
-    bg: "rgba(161, 161, 170, 0.12)",
-    border: "rgba(161, 161, 170, 0.4)",
-    badge: "border-zinc-500/30 text-zinc-400 bg-zinc-500/10",
+    color: "#94a3b8",
+    bg: "rgba(148, 163, 184, 0.10)",
+    border: "rgba(148, 163, 184, 0.35)",
+    glow: "rgba(148, 163, 184, 0.15)",
+    badge: "border-slate-500/30 text-slate-400 bg-slate-500/10",
   };
 };
 
@@ -133,21 +146,21 @@ export const EDGE_TYPE_STYLES = {
     animated: true,
   },
   auth: {
-    stroke: "#f97316",
+    stroke: "#fb923c",
     strokeWidth: 2,
-    strokeDasharray: "4 3",
+    strokeDasharray: "5 4",
     animated: true,
   },
   database: {
-    stroke: "#eab308",
+    stroke: "#fbbf24",
     strokeWidth: 2.2,
-    strokeDasharray: "3 2",
+    strokeDasharray: "4 3",
     animated: false,
   },
   event: {
-    stroke: "#a855f7",
+    stroke: "#c084fc",
     strokeWidth: 1.8,
-    strokeDasharray: "5 4",
+    strokeDasharray: "6 4",
     animated: true,
   },
   import: {
@@ -167,9 +180,9 @@ export const EDGE_TYPE_STYLES = {
 export const getEdgeStyle = (type, isHighlighted = false, isCircular = false) => {
   if (isCircular) {
     return {
-      stroke: "#ef4444",
+      stroke: "#f43f5e",
       strokeWidth: 2.5,
-      strokeDasharray: "5 3",
+      strokeDasharray: "6 3",
       animated: true,
     };
   }

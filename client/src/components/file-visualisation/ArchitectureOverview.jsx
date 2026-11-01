@@ -18,7 +18,7 @@ import NodeDetailPanel from "./panels/NodeDetailPanel";
 import { getLayoutedElements, exportGraphAsJSON } from "@/lib/graphUtils";
 import { getEdgeStyle } from "@/lib/graphStyles";
 import { toast } from "sonner";
-import { RefreshCw, Boxes, AlertCircle } from "lucide-react";
+import { RefreshCw, Boxes, AlertCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const nodeTypes = {
@@ -34,10 +34,11 @@ function ArchitectureOverviewFlow({
   isFullscreen,
 }) {
   const reactFlowWrapper = useRef(null);
-  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
 
   const [direction, setDirection] = useState("TB");
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeGroup, setActiveGroup] = useState("all");
   const [showMinimap, setShowMinimap] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(0.85);
@@ -74,6 +75,7 @@ function ArchitectureOverviewFlow({
         id: edge.id || `e_${edge.source}_${edge.target}`,
         source: edge.source,
         target: edge.target,
+        type: "smoothstep",
         label: edge.label || "",
         animated: edgeStyle.animated,
         style: {
@@ -84,11 +86,12 @@ function ArchitectureOverviewFlow({
         labelStyle: {
           fill: "var(--foreground)",
           fontSize: 10,
-          fontFamily: "monospace",
+          fontFamily: "JetBrains Mono, monospace",
+          fontWeight: 500,
         },
         labelBgStyle: {
-          fill: "var(--card)",
-          fillOpacity: 0.9,
+          fill: "color-mix(in oklch, var(--card) 95%, transparent)",
+          fillOpacity: 0.95,
           stroke: "var(--border)",
           strokeWidth: 1,
           rx: 4,
@@ -109,7 +112,7 @@ function ArchitectureOverviewFlow({
       initialNodes,
       initialEdges,
       direction,
-      { nodeWidth: 280, nodeHeight: 120 }
+      { nodeWidth: 290, nodeHeight: 130, nodesep: 50, ranksep: 80 }
     );
 
     setNodes(layoutedNodes);
@@ -127,28 +130,36 @@ function ArchitectureOverviewFlow({
     }
   }, []);
 
-  // Filter nodes based on search query
+  // Filter nodes based on search query AND active group
   const filteredNodes = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return nodes;
 
     return nodes.map((node) => {
-      const match =
+      const matchSearch =
+        !q ||
         node.data.label?.toLowerCase().includes(q) ||
         node.data.path?.toLowerCase().includes(q) ||
         node.data.description?.toLowerCase().includes(q) ||
         node.data.groupLabel?.toLowerCase().includes(q);
 
+      const matchGroup =
+        activeGroup === "all" ||
+        node.data.group === activeGroup ||
+        node.data.groupLabel?.toLowerCase() === activeGroup.toLowerCase();
+
+      const isVisible = matchSearch && matchGroup;
+
       return {
         ...node,
         style: {
           ...node.style,
-          opacity: match ? 1 : 0.2,
-          transition: "opacity 0.2s ease",
+          opacity: isVisible ? 1 : 0.15,
+          transition: "opacity 0.25s ease, filter 0.25s ease",
+          filter: isVisible ? "none" : "grayscale(80%)",
         },
       };
     });
-  }, [nodes, searchTerm]);
+  }, [nodes, searchTerm, activeGroup]);
 
   // Highlight connections when node is selected
   const styledEdges = useMemo(() => {
@@ -165,7 +176,7 @@ function ArchitectureOverviewFlow({
           ...edge.style,
           stroke: isConnected ? "#f59e0b" : baseStyle.stroke,
           strokeWidth: isConnected ? 2.5 : baseStyle.strokeWidth,
-          opacity: isConnected ? 1 : 0.25,
+          opacity: isConnected ? 1 : 0.2,
         },
       };
     });
@@ -179,6 +190,21 @@ function ArchitectureOverviewFlow({
     setSelectedNodeId(null);
   }, []);
 
+  // Focus and center canvas on a target node (called from detail panel)
+  const handleSelectNode = useCallback(
+    (nodeId) => {
+      setSelectedNodeId(nodeId);
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (targetNode && targetNode.position) {
+        setCenter(targetNode.position.x + 145, targetNode.position.y + 65, {
+          duration: 500,
+          zoom: Math.max(zoomLevel, 0.9),
+        });
+      }
+    },
+    [nodes, setCenter, zoomLevel]
+  );
+
   const handleResetView = () => {
     fitView({ padding: 0.2, duration: 300 });
   };
@@ -190,11 +216,10 @@ function ArchitectureOverviewFlow({
       toast.error("Could not capture diagram view");
       return;
     }
-    // Create an SVG wrapper
     const bbox = reactFlowWrapper.current.getBoundingClientRect();
     const serializer = new XMLSerializer();
     const content = serializer.serializeToString(svgEl);
-    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}">${content}</svg>`;
+    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}"><rect width="100%" height="100%" fill="#131418"/>${content}</svg>`;
     const blob = new Blob([fullSvg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -218,12 +243,19 @@ function ArchitectureOverviewFlow({
 
   if (isLoading && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 space-y-4 min-h-[500px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-amber-500" />
-        <div className="text-center">
-          <h4 className="text-sm font-semibold text-foreground">Analyzing Architecture</h4>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Dionysus AI is inspecting repository modules, APIs, services, and relationships...
+      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[520px]">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-2xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-center animate-pulse">
+            <Sparkles className="h-8 w-8 text-amber-400" />
+          </div>
+          <RefreshCw className="h-5 w-5 animate-spin text-amber-400 absolute -bottom-1 -right-1" />
+        </div>
+        <div className="text-center max-w-sm space-y-1.5">
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">
+            Synthesizing Architecture Overview
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Dionysus AI is inspecting modules, endpoints, dependencies, and external boundaries to construct an interactive GitDiagram overview.
           </p>
         </div>
       </div>
@@ -232,11 +264,15 @@ function ArchitectureOverviewFlow({
 
   if (error && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-3 min-h-[450px]">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <h4 className="text-sm font-semibold text-foreground">Failed to Generate Architecture</h4>
-        <p className="text-xs text-muted-foreground text-center max-w-md">{error}</p>
-        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="mt-2 text-xs">
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
+        <div className="h-12 w-12 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+          <AlertCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <div className="text-center max-w-md space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">Architecture Generation Failed</h4>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
           Retry Analysis
         </Button>
@@ -246,13 +282,18 @@ function ArchitectureOverviewFlow({
 
   if (!architectureData || !architectureData.nodes || architectureData.nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-3 min-h-[450px]">
-        <Boxes className="h-10 w-10 text-muted-foreground opacity-60" />
-        <h4 className="text-sm font-semibold text-foreground">No Architecture Generated</h4>
-        <p className="text-xs text-muted-foreground text-center max-w-md">
-          Click generate to analyze this repository's architectural structure.
-        </p>
-        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="mt-2 text-xs">
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
+        <div className="h-12 w-12 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-center">
+          <Boxes className="h-6 w-6 text-muted-foreground opacity-70" />
+        </div>
+        <div className="text-center max-w-sm space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">No Architecture Model Available</h4>
+          <p className="text-xs text-muted-foreground">
+            Generate an AI-powered high-level GitDiagram architecture overview of this codebase.
+          </p>
+        </div>
+        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
+          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
           Generate Architecture
         </Button>
       </div>
@@ -261,8 +302,8 @@ function ArchitectureOverviewFlow({
 
   return (
     <div
-      className="relative flex flex-col w-full"
-      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "680px" }}
+      className="relative flex flex-col w-full overflow-hidden"
+      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "690px" }}
       ref={reactFlowWrapper}
     >
       {/* Controls Bar */}
@@ -285,7 +326,7 @@ function ArchitectureOverviewFlow({
         placeholder="Filter architecture components..."
       />
 
-      {/* Stats Bar */}
+      {/* Stats & Group Selector Bar */}
       <GraphStats
         mode="architecture"
         stats={{
@@ -294,10 +335,13 @@ function ArchitectureOverviewFlow({
           groupCount: architectureData.groups?.length || 0,
         }}
         metadata={architectureData.metadata || {}}
+        groups={architectureData.groups || []}
+        activeGroup={activeGroup}
+        onGroupSelect={setActiveGroup}
       />
 
       {/* React Flow Canvas */}
-      <div className="relative flex-1 w-full h-full bg-background/50">
+      <div className="relative flex-1 w-full h-full bg-background/40">
         <ReactFlow
           nodes={filteredNodes}
           edges={styledEdges}
@@ -313,14 +357,18 @@ function ArchitectureOverviewFlow({
           fitViewOptions={{ padding: 0.2 }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="var(--border)" gap={20} size={1} />
-          <Controls showInteractive={false} className="!border-border/60 !bg-card !shadow-md" />
+          {/* Subtle grid background */}
+          <Background color="var(--border)" gap={24} size={1} />
+          <Controls
+            showInteractive={false}
+            className="!border-border/60 !bg-card/90 !backdrop-blur-md !shadow-lg !rounded-lg"
+          />
           {showMinimap && (
             <MiniMap
               nodeStrokeColor="#71717a"
               nodeColor="#27272a"
               nodeBorderRadius={6}
-              className="!border-border/60 !bg-card/90 !rounded-lg !shadow-lg"
+              className="!border-border/60 !bg-card/90 !backdrop-blur-md !rounded-xl !shadow-2xl"
             />
           )}
         </ReactFlow>
@@ -331,10 +379,10 @@ function ArchitectureOverviewFlow({
             node={selectedNode}
             allNodes={nodes}
             allEdges={edges}
-            mode="architecture"
+            _mode="architecture"
             githubUrl={githubUrl}
             onClose={() => setSelectedNodeId(null)}
-            onSelectNode={(id) => setSelectedNodeId(id)}
+            onSelectNode={handleSelectNode}
           />
         )}
       </div>

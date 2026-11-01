@@ -8,7 +8,6 @@ import {
 } from "@/store/slices/projectSlice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   FolderTree,
@@ -18,6 +17,8 @@ import {
   ListTree,
   Boxes,
   GitBranch,
+  ExternalLink,
+  GitFork,
 } from "lucide-react";
 import { parseFileTree } from "@/lib/fileTree";
 import FileTreeExplorer from "@/components/file-visualisation/FileTreeExplorer";
@@ -97,90 +98,110 @@ export default function FileVisualisation() {
   const currentArchitectureData = architectureGraph || currentProject?.architectureGraph;
   const currentDependencyData = dependencyGraph || currentProject?.dependencyGraph;
 
+  const repoDisplay = useMemo(() => {
+    if (!currentProject?.githubUrl) return null;
+    const clean = currentProject.githubUrl.replace(/\.git$/i, "").replace(/^https?:\/\/github\.com\//i, "");
+    return clean;
+  }, [currentProject?.githubUrl]);
+
   if (isLoading && !currentProject) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-[600px] w-full rounded-xl" />
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-64 rounded-lg" />
+          <Skeleton className="h-10 w-80 rounded-lg" />
+        </div>
+        <Skeleton className="h-[680px] w-full rounded-2xl" />
       </div>
     );
   }
 
   return (
     <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-50 bg-background p-6 overflow-auto" : ""}`}>
+      {/* Editorial Header */}
       <PageHeader
         icon={FolderTree}
         title="Code & Architecture Visualisation"
-        description="Interactive GitDiagram architecture overview, source code dependency graph, and hierarchical file tree"
+        description="Comprehensive GitDiagram architecture map, deterministic code dependency graph, and hierarchical file tree"
         actions={
-          <>
-            {currentProject?.name && (
-              <Badge variant="outline" className="border-border/60 text-xs font-mono text-muted-foreground bg-background/50">
-                {currentProject.name}
-              </Badge>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Project / Repo Pill */}
+            {repoDisplay && (
+              <a
+                href={currentProject.githubUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-card/60 hover:bg-muted text-xs font-mono text-muted-foreground hover:text-foreground transition-all shadow-2xs"
+                title="View linked repository on GitHub"
+              >
+                <GitFork className="h-3.5 w-3.5 text-amber-400" />
+                <span className="truncate max-w-[160px]">{repoDisplay}</span>
+                <ExternalLink className="h-3 w-3 opacity-60" />
+              </a>
             )}
 
-            {/* Mode Selector Tabs */}
-            <div className="flex items-center p-1 rounded-lg border border-border/60 bg-card/60 flex-wrap gap-0.5">
+            {/* Mode Selector Segmented Tabs */}
+            <div className="flex items-center p-1 rounded-xl border border-border/60 bg-card/70 backdrop-blur-md shadow-xs">
               <button
                 onClick={() => setViewMode("architecture")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === "architecture"
-                    ? "bg-muted text-foreground font-semibold shadow-xs"
+                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="GitDiagram-Style Architecture Overview"
               >
-                <Boxes className="h-3.5 w-3.5 text-amber-400" />
-                Architecture
+                <Boxes className={`h-3.5 w-3.5 ${viewMode === "architecture" ? "text-amber-400" : "text-muted-foreground"}`} />
+                <span>Architecture</span>
               </button>
 
               <button
                 onClick={() => setViewMode("dependencies")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === "dependencies"
-                    ? "bg-muted text-foreground font-semibold shadow-xs"
+                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                title="Source Code Dependency Graph"
+                title="Static Source Code Dependency Graph"
               >
-                <GitBranch className="h-3.5 w-3.5 text-cyan-400" />
-                Dependencies
+                <GitBranch className={`h-3.5 w-3.5 ${viewMode === "dependencies" ? "text-cyan-400" : "text-muted-foreground"}`} />
+                <span>Dependencies</span>
               </button>
 
               <button
                 onClick={() => setViewMode("tree")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === "tree"
-                    ? "bg-muted text-foreground font-semibold shadow-xs"
+                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Hierarchical File Tree Explorer"
               >
                 <ListTree className="h-3.5 w-3.5" />
-                Tree Explorer
+                <span>Tree</span>
               </button>
 
               <button
                 onClick={() => setViewMode("diagram")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === "diagram"
-                    ? "bg-muted text-foreground font-semibold shadow-xs"
+                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Mermaid Directory Diagram View"
               >
                 <Network className="h-3.5 w-3.5" />
-                Directory Diagram
+                <span>Diagram</span>
               </button>
             </div>
 
+            {/* Fullscreen Toggle Button */}
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 p-0 border-border/60 text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 p-0 border-border/60 text-muted-foreground hover:text-foreground rounded-lg shadow-2xs"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
             >
               {isFullscreen ? (
                 <Minimize2 className="h-4 w-4" />
@@ -188,12 +209,13 @@ export default function FileVisualisation() {
                 <Maximize2 className="h-4 w-4" />
               )}
             </Button>
-          </>
+          </div>
         }
       />
 
+      {/* Main Canvas Card */}
       {currentProject?.githubUrl ? (
-        <Card className="glass-premium overflow-hidden animate-fade-up">
+        <Card className="glass-premium overflow-hidden rounded-2xl border-border/60 shadow-xl animate-fade-up">
           <CardContent className="p-0">
             {viewMode === "architecture" && (
               <ArchitectureOverview
@@ -227,13 +249,19 @@ export default function FileVisualisation() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="glass border-border/50 animate-fade-up">
-          <CardContent className="py-16 text-center">
-            <FolderTree className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-60" />
-            <h3 className="text-base font-semibold mb-1 text-foreground">No repository connected</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Link a GitHub repository to this project to unlock AI architecture visualization and static dependency graph mapping.
-            </p>
+        <Card className="glass border-border/50 rounded-2xl animate-fade-up">
+          <CardContent className="py-20 text-center max-w-lg mx-auto space-y-4">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-center shadow-xs">
+              <FolderTree className="h-8 w-8 text-muted-foreground opacity-60" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-semibold text-foreground tracking-tight">
+                No GitHub Repository Connected
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Connect a GitHub repository in Project Settings or the project overview to automatically synthesize your architecture diagram and map complete code dependencies.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
