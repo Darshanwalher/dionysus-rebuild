@@ -212,11 +212,19 @@ export default function FileVisualisation() {
           )}
 
           {viewMode === "tree" && (
-            <FileTreeExplorer fileTree={fileTree} isFullscreen={isFullscreen} />
+            <FileTreeExplorer
+              fileTree={fileTree}
+              githubUrl={currentProject.githubUrl}
+              isFullscreen={isFullscreen}
+            />
           )}
 
           {viewMode === "diagram" && (
-            <ArchitectureMap fileTree={fileTree} isFullscreen={isFullscreen} />
+            <ArchitectureMap
+              fileTree={fileTree}
+              githubUrl={currentProject.githubUrl}
+              isFullscreen={isFullscreen}
+            />
           )}
         </div>
       ) : (
