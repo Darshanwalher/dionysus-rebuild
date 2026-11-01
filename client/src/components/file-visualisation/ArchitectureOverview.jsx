@@ -12,10 +12,11 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import ArchitectureNode from "./nodes/ArchitectureNode";
+import GroupNode from "./nodes/GroupNode";
 import GraphControls from "./panels/GraphControls";
 import GraphStats from "./panels/GraphStats";
 import NodeDetailPanel from "./panels/NodeDetailPanel";
-import { getLayoutedElements, exportGraphAsJSON } from "@/lib/graphUtils";
+import { layoutArchitectureDiagram, exportGraphAsJSON } from "@/lib/graphUtils";
 import { getEdgeStyle } from "@/lib/graphStyles";
 import { toast } from "sonner";
 import { RefreshCw, Boxes, AlertCircle, Sparkles } from "lucide-react";
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 
 const nodeTypes = {
   architectureNode: ArchitectureNode,
+  groupNode: GroupNode,
 };
 
 function ArchitectureOverviewFlow({
@@ -46,82 +48,85 @@ function ArchitectureOverviewFlow({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Transform raw architecture graph into React Flow nodes and edges
-  const { initialNodes, initialEdges } = useMemo(() => {
-    if (!architectureData || !architectureData.nodes) {
-      return { initialNodes: [], initialEdges: [] };
+  // Transform raw architecture data using GitDiagram-style group layout
+  const layoutResult = useMemo(() => {
+    if (!architectureData || !architectureData.nodes || architectureData.nodes.length === 0) {
+      return { initialNodes: [], initialEdges: [], nodes: [], edges: [] };
     }
 
-    const groupMap = new Map();
-    (architectureData.groups || []).forEach((g) => {
-      groupMap.set(g.id, g.label || g.name || g.id);
-    });
+    try {
+      const groupMap = new Map();
+      (architectureData.groups || []).forEach((g) => {
+        groupMap.set(g.id, g.label || g.name || g.id);
+      });
 
-    const flowNodes = architectureData.nodes.map((node) => ({
-      id: node.id,
-      type: "architectureNode",
-      data: {
-        ...node,
-        groupLabel: groupMap.get(node.group) || node.group,
-        targetPosition: direction === "LR" ? "left" : "top",
-        sourcePosition: direction === "LR" ? "right" : "bottom",
-      },
-      position: { x: 0, y: 0 },
-    }));
+      const flowNodes = architectureData.nodes.map((node) => ({
+        id: node.id,
+        type: "architectureNode",
+        data: {
+          ...node,
+          groupLabel: groupMap.get(node.group) || node.group,
+        },
+        position: { x: 0, y: 0 },
+      }));
 
-    const flowEdges = (architectureData.edges || []).map((edge) => {
-      const edgeStyle = getEdgeStyle(edge.type);
-      return {
-        id: edge.id || `e_${edge.source}_${edge.target}`,
-        source: edge.source,
-        target: edge.target,
-        type: "smoothstep",
-        label: edge.label || "",
-        animated: edgeStyle.animated,
-        style: {
-          stroke: edgeStyle.stroke,
-          strokeWidth: edgeStyle.strokeWidth,
-          strokeDasharray: edgeStyle.strokeDasharray,
-        },
-        labelStyle: {
-          fill: "var(--foreground)",
-          fontSize: 10,
-          fontFamily: "JetBrains Mono, monospace",
-          fontWeight: 500,
-        },
-        labelBgStyle: {
-          fill: "color-mix(in oklch, var(--card) 95%, transparent)",
-          fillOpacity: 0.95,
-          stroke: "var(--border)",
-          strokeWidth: 1,
-          rx: 4,
-          ry: 4,
-        },
-        data: edge,
-      };
-    });
+      const flowEdges = (architectureData.edges || []).map((edge) => {
+        const edgeStyle = getEdgeStyle(edge.type);
+        return {
+          id: edge.id || `e_${edge.source}_${edge.target}`,
+          source: edge.source,
+          target: edge.target,
+          type: "smoothstep",
+          label: edge.label || "",
+          animated: edgeStyle.animated,
+          style: {
+            stroke: edgeStyle.stroke,
+            strokeWidth: 2,
+            strokeDasharray: edgeStyle.strokeDasharray,
+          },
+          labelStyle: {
+            fill: "var(--foreground)",
+            fontSize: 10,
+            fontFamily: "var(--font-mono)",
+            fontWeight: 600,
+          },
+          labelBgStyle: {
+            fill: "var(--card)",
+            fillOpacity: 1,
+            stroke: "var(--border)",
+            strokeWidth: 1.5,
+            rx: 4,
+            ry: 4,
+          },
+          data: edge,
+        };
+      });
 
-    return { initialNodes: flowNodes, initialEdges: flowEdges };
+      return layoutArchitectureDiagram(flowNodes, flowEdges, direction);
+    } catch (err) {
+      console.error("Architecture layout error:", err);
+      return { initialNodes: [], initialEdges: [], nodes: [], edges: [] };
+    }
   }, [architectureData, direction]);
 
-  // Apply Dagre layout
+  // Set nodes and edges with fitView that respects readability
   useEffect(() => {
-    if (initialNodes.length === 0) return;
+    const rawN = layoutResult?.initialNodes || layoutResult?.nodes;
+    const rawE = layoutResult?.initialEdges || layoutResult?.edges;
+    if (!rawN || rawN.length === 0) return;
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      initialNodes,
-      initialEdges,
-      direction,
-      { nodeWidth: 290, nodeHeight: 130, nodesep: 50, ranksep: 80 }
-    );
-
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    setNodes(rawN);
+    setEdges(rawE || []);
 
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 400 });
-    }, 50);
-  }, [initialNodes, initialEdges, direction, setNodes, setEdges, fitView]);
+      fitView({
+        padding: 0.15,
+        minZoom: 0.70, // Prevents tiny unreadable zoomed-out view!
+        maxZoom: 1.1,
+        duration: 400,
+      });
+    }, 60);
+  }, [layoutResult, setNodes, setEdges, fitView]);
 
   // Track zoom level changes
   const onMoveEnd = useCallback((event, viewport) => {
@@ -135,6 +140,18 @@ function ArchitectureOverviewFlow({
     const q = searchTerm.trim().toLowerCase();
 
     return nodes.map((node) => {
+      if (node.type === "groupNode") {
+        const isGroupMatched = activeGroup === "all" || node.data?.id === activeGroup;
+        return {
+          ...node,
+          style: {
+            ...node.style,
+            opacity: isGroupMatched ? 1 : 0.2,
+            transition: "opacity 0.25s ease",
+          },
+        };
+      }
+
       const matchSearch =
         !q ||
         node.data.label?.toLowerCase().includes(q) ||
@@ -153,9 +170,9 @@ function ArchitectureOverviewFlow({
         ...node,
         style: {
           ...node.style,
-          opacity: isVisible ? 1 : 0.15,
+          opacity: isVisible ? 1 : 0.12,
           transition: "opacity 0.25s ease, filter 0.25s ease",
-          filter: isVisible ? "none" : "grayscale(80%)",
+          filter: isVisible ? "none" : "grayscale(90%)",
         },
       };
     });
@@ -175,14 +192,15 @@ function ArchitectureOverviewFlow({
         style: {
           ...edge.style,
           stroke: isConnected ? "#f59e0b" : baseStyle.stroke,
-          strokeWidth: isConnected ? 2.5 : baseStyle.strokeWidth,
-          opacity: isConnected ? 1 : 0.2,
+          strokeWidth: isConnected ? 3 : 1.5,
+          opacity: isConnected ? 1 : 0.15,
         },
       };
     });
   }, [edges, selectedNodeId]);
 
   const onNodeClick = useCallback((event, node) => {
+    if (node.type === "groupNode") return;
     setSelectedNodeId((prev) => (prev === node.id ? null : node.id));
   }, []);
 
@@ -190,23 +208,23 @@ function ArchitectureOverviewFlow({
     setSelectedNodeId(null);
   }, []);
 
-  // Focus and center canvas on a target node (called from detail panel)
+  // Focus and center canvas on a target node
   const handleSelectNode = useCallback(
     (nodeId) => {
       setSelectedNodeId(nodeId);
       const targetNode = nodes.find((n) => n.id === nodeId);
       if (targetNode && targetNode.position) {
-        setCenter(targetNode.position.x + 145, targetNode.position.y + 65, {
+        setCenter(targetNode.position.x + 135, targetNode.position.y + 55, {
           duration: 500,
-          zoom: Math.max(zoomLevel, 0.9),
+          zoom: 0.95,
         });
       }
     },
-    [nodes, setCenter, zoomLevel]
+    [nodes, setCenter]
   );
 
   const handleResetView = () => {
-    fitView({ padding: 0.2, duration: 300 });
+    fitView({ padding: 0.15, minZoom: 0.70, maxZoom: 1.1, duration: 300 });
   };
 
   const handleExportSVG = () => {
@@ -219,7 +237,7 @@ function ArchitectureOverviewFlow({
     const bbox = reactFlowWrapper.current.getBoundingClientRect();
     const serializer = new XMLSerializer();
     const content = serializer.serializeToString(svgEl);
-    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}"><rect width="100%" height="100%" fill="#131418"/>${content}</svg>`;
+    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}"><rect width="100%" height="100%" fill="#ffffff"/>${content}</svg>`;
     const blob = new Blob([fullSvg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -238,24 +256,24 @@ function ArchitectureOverviewFlow({
   };
 
   const selectedNode = useMemo(() => {
-    return nodes.find((n) => n.id === selectedNodeId) || null;
+    return nodes.find((n) => n.id === selectedNodeId && n.type !== "groupNode") || null;
   }, [nodes, selectedNodeId]);
 
   if (isLoading && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[520px]">
+      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[550px]">
         <div className="relative">
-          <div className="h-16 w-16 rounded-2xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-center animate-pulse">
-            <Sparkles className="h-8 w-8 text-amber-400" />
+          <div className="h-16 w-16 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 flex items-center justify-center animate-pulse">
+            <Sparkles className="h-8 w-8 text-amber-500" />
           </div>
-          <RefreshCw className="h-5 w-5 animate-spin text-amber-400 absolute -bottom-1 -right-1" />
+          <RefreshCw className="h-5 w-5 animate-spin text-amber-500 absolute -bottom-1 -right-1" />
         </div>
         <div className="text-center max-w-sm space-y-1.5">
-          <h4 className="text-sm font-semibold text-foreground tracking-tight">
-            Synthesizing Architecture Overview
+          <h4 className="text-sm font-bold text-foreground tracking-tight">
+            Generating Architecture Diagram
           </h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Dionysus AI is inspecting modules, endpoints, dependencies, and external boundaries to construct an interactive GitDiagram overview.
+            Dionysus AI is grouping modules, API endpoints, services, and databases into clean visual architectural tiers...
           </p>
         </div>
       </div>
@@ -264,15 +282,15 @@ function ArchitectureOverviewFlow({
 
   if (error && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
-        <div className="h-12 w-12 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
+        <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
           <AlertCircle className="h-6 w-6 text-destructive" />
         </div>
         <div className="text-center max-w-md space-y-1">
-          <h4 className="text-sm font-semibold text-foreground">Architecture Generation Failed</h4>
+          <h4 className="text-sm font-bold text-foreground">Architecture Generation Failed</h4>
           <p className="text-xs text-muted-foreground">{error}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
+        <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
           Retry Analysis
         </Button>
@@ -282,17 +300,17 @@ function ArchitectureOverviewFlow({
 
   if (!architectureData || !architectureData.nodes || architectureData.nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[460px]">
-        <div className="h-12 w-12 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-center">
-          <Boxes className="h-6 w-6 text-muted-foreground opacity-70" />
+      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
+        <div className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border flex items-center justify-center">
+          <Boxes className="h-6 w-6 text-muted-foreground" />
         </div>
         <div className="text-center max-w-sm space-y-1">
-          <h4 className="text-sm font-semibold text-foreground">No Architecture Model Available</h4>
+          <h4 className="text-sm font-bold text-foreground">No Architecture Model Available</h4>
           <p className="text-xs text-muted-foreground">
-            Generate an AI-powered high-level GitDiagram architecture overview of this codebase.
+            Generate an AI-powered GitDiagram architecture overview of this codebase.
           </p>
         </div>
-        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs shadow-xs">
+        <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs font-semibold">
           <Sparkles className="h-3.5 w-3.5 mr-1.5" />
           Generate Architecture
         </Button>
@@ -303,7 +321,7 @@ function ArchitectureOverviewFlow({
   return (
     <div
       className="relative flex flex-col w-full overflow-hidden"
-      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "690px" }}
+      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "740px" }}
       ref={reactFlowWrapper}
     >
       {/* Controls Bar */}
@@ -311,7 +329,7 @@ function ArchitectureOverviewFlow({
         zoom={zoomLevel}
         onZoomIn={() => zoomIn({ duration: 200 })}
         onZoomOut={() => zoomOut({ duration: 200 })}
-        onFitView={() => fitView({ padding: 0.2, duration: 300 })}
+        onFitView={handleResetView}
         onResetView={handleResetView}
         direction={direction}
         onToggleDirection={(d) => setDirection(d)}
@@ -341,7 +359,7 @@ function ArchitectureOverviewFlow({
       />
 
       {/* React Flow Canvas */}
-      <div className="relative flex-1 w-full h-full bg-background/40">
+      <div className="relative flex-1 w-full h-full bg-slate-50/60 dark:bg-background/40">
         <ReactFlow
           nodes={filteredNodes}
           edges={styledEdges}
@@ -351,24 +369,23 @@ function ArchitectureOverviewFlow({
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onMoveEnd={onMoveEnd}
-          minZoom={0.15}
-          maxZoom={2.5}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.2}
+          maxZoom={2.0}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.85 }}
           proOptions={{ hideAttribution: true }}
         >
           {/* Subtle grid background */}
-          <Background color="var(--border)" gap={24} size={1} />
+          <Background color="var(--border)" gap={24} size={1.2} />
           <Controls
             showInteractive={false}
-            className="!border-border/60 !bg-card/90 !backdrop-blur-md !shadow-lg !rounded-lg"
+            className="!border-2 !border-border !bg-card !shadow-md !rounded-lg"
           />
           {showMinimap && (
             <MiniMap
-              nodeStrokeColor="#71717a"
-              nodeColor="#27272a"
-              nodeBorderRadius={6}
-              className="!border-border/60 !bg-card/90 !backdrop-blur-md !rounded-xl !shadow-2xl"
+              nodeStrokeColor="#64748b"
+              nodeColor={(node) => (node.type === "groupNode" ? "#e2e8f0" : "#94a3b8")}
+              nodeBorderRadius={4}
+              className="!border-2 !border-border !bg-card !rounded-xl !shadow-xl"
             />
           )}
         </ReactFlow>
@@ -390,10 +407,45 @@ function ArchitectureOverviewFlow({
   );
 }
 
+class VisualizationErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Architecture visualizer error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
+          <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
+            <AlertCircle className="h-6 w-6 text-destructive" />
+          </div>
+          <div className="text-center max-w-md space-y-1">
+            <h4 className="text-sm font-bold text-foreground">Diagram Render Error</h4>
+            <p className="text-xs text-muted-foreground">{this.state.error?.message || "Could not render graph."}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => this.setState({ hasError: false })} className="text-xs">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Reload Diagram
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function ArchitectureOverview(props) {
   return (
-    <ReactFlowProvider>
-      <ArchitectureOverviewFlow {...props} />
-    </ReactFlowProvider>
+    <VisualizationErrorBoundary>
+      <ReactFlowProvider>
+        <ArchitectureOverviewFlow {...props} />
+      </ReactFlowProvider>
+    </VisualizationErrorBoundary>
   );
 }

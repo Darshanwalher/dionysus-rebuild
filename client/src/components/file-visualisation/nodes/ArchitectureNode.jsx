@@ -9,91 +9,78 @@ function ArchitectureNode({ data, selected }) {
 
   return (
     <div
-      className={`group relative w-[290px] rounded-xl border transition-all duration-200 select-none ${
+      className={`group relative w-[270px] h-[105px] rounded-xl border-2 transition-all duration-150 select-none flex flex-col justify-between p-3 ${
         selected
-          ? "border-amber-400/90 ring-2 ring-amber-400/25 shadow-xl shadow-amber-500/10 scale-[1.02]"
-          : "border-border/60 hover:border-border/90 hover:shadow-xl hover:scale-[1.01]"
+          ? "border-amber-500 ring-4 ring-amber-500/20 shadow-xl scale-[1.02] z-20"
+          : "border-slate-200 dark:border-zinc-700 hover:border-slate-400 dark:hover:border-zinc-500 shadow-sm hover:shadow-md hover:scale-[1.01]"
       }`}
       style={{
-        background: "color-mix(in oklch, var(--card) 92%, transparent)",
-        backdropFilter: "blur(16px)",
-        boxShadow: selected
-          ? `0 0 20px ${meta.glow}, 0 8px 24px -4px rgba(0,0,0,0.4)`
-          : "0 4px 20px -2px rgba(0,0,0,0.25)",
+        backgroundColor: "var(--card)",
       }}
     >
-      {/* Top ambient highlight line */}
+      {/* Left colored category strip */}
       <div
-        className="absolute inset-x-0 top-0 h-[1px] rounded-t-xl opacity-60"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${meta.color}, transparent)`,
-        }}
+        className="absolute left-0 inset-y-0 w-1.5 rounded-l-[10px]"
+        style={{ backgroundColor: meta.color }}
       />
 
       {/* Target connection handle */}
       <Handle
         type="target"
         position={data.targetPosition === "left" ? Position.Left : Position.Top}
-        className="!h-2.5 !w-2.5 !border-2 !border-background !bg-muted-foreground/80 transition-all group-hover:!bg-amber-400 group-hover:scale-125"
+        className="!h-3 !w-3 !border-2 !border-background !bg-slate-400 dark:!bg-zinc-400 group-hover:!bg-amber-400 transition-transform group-hover:scale-125"
       />
 
-      <div className="p-3.5 space-y-2.5">
-        {/* Header: Icon, Label, and Type Badge */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border shadow-xs"
-              style={{
-                backgroundColor: meta.bg,
-                borderColor: meta.border,
-                color: meta.color,
-              }}
-            >
-              <Icon className="h-3.5 w-3.5" />
-            </div>
-
-            <div className="min-w-0">
-              <h4 className="text-xs font-semibold text-foreground tracking-tight truncate leading-tight">
-                {data.label}
-              </h4>
-              {data.groupLabel && (
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider block truncate">
-                  {data.groupLabel}
-                </span>
-              )}
-            </div>
+      {/* Header: Icon, Label, and Type Badge */}
+      <div className="flex items-start justify-between gap-2 pl-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border shadow-2xs"
+            style={{
+              backgroundColor: meta.bg,
+              borderColor: meta.border,
+              color: meta.color,
+            }}
+          >
+            <Icon className="h-3.5 w-3.5" />
           </div>
 
-          <span
-            className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border flex-shrink-0 ${meta.badge}`}
-          >
-            {meta.label}
-          </span>
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight">
+              {data.label}
+            </h4>
+          </div>
         </div>
 
-        {/* Short description */}
-        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-          {data.responsibility || data.description || "Core application component."}
-        </p>
+        <span
+          className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border font-semibold flex-shrink-0 ${meta.badge}`}
+        >
+          {meta.label}
+        </span>
+      </div>
 
-        {/* Path Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground">
-          <span className="flex items-center gap-1.5 truncate max-w-[210px]" title={data.path}>
-            <FileText className="h-3 w-3 flex-shrink-0 opacity-60" />
-            <span className="truncate">{data.path || "virtual component"}</span>
-          </span>
+      {/* Responsibility text with high contrast */}
+      <p className="text-[11px] text-slate-600 dark:text-zinc-400 line-clamp-1 leading-snug pl-1 font-medium">
+        {data.responsibility || data.description || "Core application component."}
+      </p>
 
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 text-foreground">
-            Inspect <ArrowUpRight className="h-2.5 w-2.5" />
-          </span>
-        </div>
+      {/* Footer: Monospace Path and Action */}
+      <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-zinc-800/80 text-[10px] font-mono text-slate-500 dark:text-zinc-400 pl-1">
+        <span className="flex items-center gap-1 truncate max-w-[190px]" title={data.path}>
+          <FileText className="h-3 w-3 flex-shrink-0 opacity-70" />
+          <span className="truncate">{data.path || "virtual"}</span>
+        </span>
+
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 text-slate-800 dark:text-slate-200 font-sans font-semibold">
+          <ArrowUpRight className="h-3 w-3" />
+        </span>
       </div>
 
       {/* Source connection handle */}
       <Handle
         type="source"
         position={data.sourcePosition === "right" ? Position.Right : Position.Bottom}
-        className="!h-2.5 !w-2.5 !border-2 !border-background !bg-muted-foreground/80 transition-all group-hover:!bg-amber-400 group-hover:scale-125"
+        className="!h-3 !w-3 !border-2 !border-background !bg-slate-400 dark:!bg-zinc-400 group-hover:!bg-amber-400 transition-transform group-hover:scale-125"
       />
     </div>
   );

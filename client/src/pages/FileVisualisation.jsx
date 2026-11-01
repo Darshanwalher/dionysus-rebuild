@@ -45,7 +45,7 @@ export default function FileVisualisation() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    if (!currentProject || currentProject._id !== id) {
+    if (!currentProject || (currentProject._id !== id && currentProject.id !== id)) {
       dispatch(fetchProject(id));
     }
   }, [dispatch, id, currentProject]);
