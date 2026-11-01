@@ -33,7 +33,6 @@ function ArchitectureOverviewFlow({
   isLoading,
   error,
   onRefresh,
-  isFullscreen,
 }) {
   const reactFlowWrapper = useRef(null);
   const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
@@ -120,8 +119,8 @@ function ArchitectureOverviewFlow({
 
     setTimeout(() => {
       fitView({
-        padding: 0.15,
-        minZoom: 0.70, // Prevents tiny unreadable zoomed-out view!
+        padding: 0.12,
+        minZoom: 0.55,
         maxZoom: 1.1,
         duration: 400,
       });
@@ -146,7 +145,7 @@ function ArchitectureOverviewFlow({
           ...node,
           style: {
             ...node.style,
-            opacity: isGroupMatched ? 1 : 0.2,
+            opacity: isGroupMatched ? 1 : 0.15,
             transition: "opacity 0.25s ease",
           },
         };
@@ -170,7 +169,7 @@ function ArchitectureOverviewFlow({
         ...node,
         style: {
           ...node.style,
-          opacity: isVisible ? 1 : 0.12,
+          opacity: isVisible ? 1 : 0.08,
           transition: "opacity 0.25s ease, filter 0.25s ease",
           filter: isVisible ? "none" : "grayscale(90%)",
         },
@@ -193,7 +192,7 @@ function ArchitectureOverviewFlow({
           ...edge.style,
           stroke: isConnected ? "#f59e0b" : baseStyle.stroke,
           strokeWidth: isConnected ? 3 : 1.5,
-          opacity: isConnected ? 1 : 0.15,
+          opacity: isConnected ? 1 : 0.12,
         },
       };
     });
@@ -224,7 +223,7 @@ function ArchitectureOverviewFlow({
   );
 
   const handleResetView = () => {
-    fitView({ padding: 0.15, minZoom: 0.70, maxZoom: 1.1, duration: 300 });
+    fitView({ padding: 0.12, minZoom: 0.55, maxZoom: 1.1, duration: 300 });
   };
 
   const handleExportSVG = () => {
@@ -261,19 +260,19 @@ function ArchitectureOverviewFlow({
 
   if (isLoading && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[550px]">
+      <div className="flex flex-col items-center justify-center h-full space-y-5">
         <div className="relative">
-          <div className="h-16 w-16 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 flex items-center justify-center animate-pulse">
-            <Sparkles className="h-8 w-8 text-amber-500" />
+          <div className="h-14 w-14 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 flex items-center justify-center animate-pulse">
+            <Sparkles className="h-7 w-7 text-amber-500" />
           </div>
-          <RefreshCw className="h-5 w-5 animate-spin text-amber-500 absolute -bottom-1 -right-1" />
+          <RefreshCw className="h-4 w-4 animate-spin text-amber-500 absolute -bottom-1 -right-1" />
         </div>
-        <div className="text-center max-w-sm space-y-1.5">
-          <h4 className="text-sm font-bold text-foreground tracking-tight">
-            Generating Architecture Diagram
+        <div className="text-center max-w-xs space-y-1">
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">
+            Generating Architecture
           </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Dionysus AI is grouping modules, API endpoints, services, and databases into clean visual architectural tiers...
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Analyzing modules, services, and databases into visual tiers...
           </p>
         </div>
       </div>
@@ -282,17 +281,17 @@ function ArchitectureOverviewFlow({
 
   if (error && (!architectureData || !architectureData.nodes)) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-        <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
-          <AlertCircle className="h-6 w-6 text-destructive" />
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <div className="h-11 w-11 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
+          <AlertCircle className="h-5 w-5 text-destructive" />
         </div>
-        <div className="text-center max-w-md space-y-1">
-          <h4 className="text-sm font-bold text-foreground">Architecture Generation Failed</h4>
+        <div className="text-center max-w-sm space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">Architecture Generation Failed</h4>
           <p className="text-xs text-muted-foreground">{error}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Retry Analysis
+          Retry
         </Button>
       </div>
     );
@@ -300,14 +299,14 @@ function ArchitectureOverviewFlow({
 
   if (!architectureData || !architectureData.nodes || architectureData.nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-        <div className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border flex items-center justify-center">
-          <Boxes className="h-6 w-6 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <div className="h-11 w-11 rounded-xl bg-muted/40 border-2 border-border flex items-center justify-center">
+          <Boxes className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="text-center max-w-sm space-y-1">
-          <h4 className="text-sm font-bold text-foreground">No Architecture Model Available</h4>
+        <div className="text-center max-w-xs space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">No Architecture Model</h4>
           <p className="text-xs text-muted-foreground">
-            Generate an AI-powered GitDiagram architecture overview of this codebase.
+            Generate an AI-powered architecture overview of this codebase.
           </p>
         </div>
         <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs font-semibold">
@@ -320,8 +319,7 @@ function ArchitectureOverviewFlow({
 
   return (
     <div
-      className="relative flex flex-col w-full overflow-hidden"
-      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "740px" }}
+      className="relative flex flex-col w-full h-full overflow-hidden"
       ref={reactFlowWrapper}
     >
       {/* Controls Bar */}
@@ -358,8 +356,8 @@ function ArchitectureOverviewFlow({
         onGroupSelect={setActiveGroup}
       />
 
-      {/* React Flow Canvas */}
-      <div className="relative flex-1 w-full h-full bg-slate-50/60 dark:bg-background/40">
+      {/* React Flow Canvas — fills all remaining space */}
+      <div className="relative flex-1 w-full min-h-0 bg-slate-50/40 dark:bg-background/30">
         <ReactFlow
           nodes={filteredNodes}
           edges={styledEdges}
@@ -369,23 +367,22 @@ function ArchitectureOverviewFlow({
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onMoveEnd={onMoveEnd}
-          minZoom={0.2}
-          maxZoom={2.0}
+          minZoom={0.15}
+          maxZoom={2.5}
           defaultViewport={{ x: 0, y: 0, zoom: 0.85 }}
           proOptions={{ hideAttribution: true }}
         >
-          {/* Subtle grid background */}
-          <Background color="var(--border)" gap={24} size={1.2} />
+          <Background color="var(--border)" gap={28} size={1} />
           <Controls
             showInteractive={false}
-            className="!border-2 !border-border !bg-card !shadow-md !rounded-lg"
+            className="!border !border-border/60 !bg-card/90 !backdrop-blur-sm !shadow-lg !rounded-lg"
           />
           {showMinimap && (
             <MiniMap
               nodeStrokeColor="#64748b"
               nodeColor={(node) => (node.type === "groupNode" ? "#e2e8f0" : "#94a3b8")}
               nodeBorderRadius={4}
-              className="!border-2 !border-border !bg-card !rounded-xl !shadow-xl"
+              className="!border !border-border/60 !bg-card/90 !backdrop-blur-sm !rounded-xl !shadow-xl"
             />
           )}
         </ReactFlow>
@@ -421,17 +418,17 @@ class VisualizationErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-          <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6 text-destructive" />
+        <div className="flex flex-col items-center justify-center h-full space-y-4">
+          <div className="h-11 w-11 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
+            <AlertCircle className="h-5 w-5 text-destructive" />
           </div>
           <div className="text-center max-w-md space-y-1">
-            <h4 className="text-sm font-bold text-foreground">Diagram Render Error</h4>
+            <h4 className="text-sm font-semibold text-foreground">Diagram Render Error</h4>
             <p className="text-xs text-muted-foreground">{this.state.error?.message || "Could not render graph."}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => this.setState({ hasError: false })} className="text-xs">
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Reload Diagram
+            Reload
           </Button>
         </div>
       );

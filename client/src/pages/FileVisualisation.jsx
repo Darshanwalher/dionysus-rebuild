@@ -6,9 +6,7 @@ import {
   generateArchitecture,
   generateDependencies,
 } from "@/store/slices/projectSlice";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import {
   FolderTree,
   Maximize2,
@@ -25,7 +23,6 @@ import FileTreeExplorer from "@/components/file-visualisation/FileTreeExplorer";
 import ArchitectureMap from "@/components/file-visualisation/ArchitectureMap";
 import ArchitectureOverview from "@/components/file-visualisation/ArchitectureOverview";
 import DependencyGraph from "@/components/file-visualisation/DependencyGraph";
-import PageHeader from "@/components/layout/PageHeader";
 
 export default function FileVisualisation() {
   const { id } = useParams();
@@ -104,166 +101,140 @@ export default function FileVisualisation() {
     return clean;
   }, [currentProject?.githubUrl]);
 
+  const modes = [
+    { key: "architecture", label: "Architecture", icon: Boxes, accent: "text-amber-400" },
+    { key: "dependencies", label: "Dependencies", icon: GitBranch, accent: "text-cyan-400" },
+    { key: "tree", label: "Tree", icon: ListTree, accent: "text-emerald-400" },
+    { key: "diagram", label: "Diagram", icon: Network, accent: "text-indigo-400" },
+  ];
+
   if (isLoading && !currentProject) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-64 rounded-lg" />
-          <Skeleton className="h-10 w-80 rounded-lg" />
+      <div className="flex flex-col h-[calc(100vh-3rem)] -my-8 -mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+          <Skeleton className="h-7 w-48 rounded-lg" />
+          <Skeleton className="h-8 w-72 rounded-lg" />
         </div>
-        <Skeleton className="h-[680px] w-full rounded-2xl" />
+        <Skeleton className="flex-1 m-0 rounded-none" />
       </div>
     );
   }
 
   return (
-    <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-50 bg-background p-6 overflow-auto" : ""}`}>
-      {/* Editorial Header */}
-      <PageHeader
-        icon={FolderTree}
-        title="Code & Architecture Visualisation"
-        description="Comprehensive GitDiagram architecture map, deterministic code dependency graph, and hierarchical file tree"
-        actions={
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Project / Repo Pill */}
-            {repoDisplay && (
-              <a
-                href={currentProject.githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-card/60 hover:bg-muted text-xs font-mono text-muted-foreground hover:text-foreground transition-all shadow-2xs"
-                title="View linked repository on GitHub"
-              >
-                <GitFork className="h-3.5 w-3.5 text-amber-400" />
-                <span className="truncate max-w-[160px]">{repoDisplay}</span>
-                <ExternalLink className="h-3 w-3 opacity-60" />
-              </a>
-            )}
-
-            {/* Mode Selector Segmented Tabs */}
-            <div className="flex items-center p-1 rounded-xl border border-border/60 bg-card/70 backdrop-blur-md shadow-xs">
-              <button
-                onClick={() => setViewMode("architecture")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  viewMode === "architecture"
-                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="GitDiagram-Style Architecture Overview"
-              >
-                <Boxes className={`h-3.5 w-3.5 ${viewMode === "architecture" ? "text-amber-400" : "text-muted-foreground"}`} />
-                <span>Architecture</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode("dependencies")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  viewMode === "dependencies"
-                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Static Source Code Dependency Graph"
-              >
-                <GitBranch className={`h-3.5 w-3.5 ${viewMode === "dependencies" ? "text-cyan-400" : "text-muted-foreground"}`} />
-                <span>Dependencies</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode("tree")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  viewMode === "tree"
-                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Hierarchical File Tree Explorer"
-              >
-                <ListTree className="h-3.5 w-3.5" />
-                <span>Tree</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode("diagram")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  viewMode === "diagram"
-                    ? "bg-muted text-foreground font-semibold shadow-xs ring-1 ring-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Mermaid Directory Diagram View"
-              >
-                <Network className="h-3.5 w-3.5" />
-                <span>Diagram</span>
-              </button>
-            </div>
-
-            {/* Fullscreen Toggle Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 border-border/60 text-muted-foreground hover:text-foreground rounded-lg shadow-2xs"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-background flex flex-col"
+          : "flex flex-col -my-8 -mx-4 sm:-mx-6 lg:-mx-8"
+      }
+      style={!isFullscreen ? { height: "calc(100vh - 3rem)" } : undefined}
+    >
+      {/* ─── Compact Toolbar Header ─── */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-card/60 backdrop-blur-md flex-shrink-0">
+        {/* Left: Repo pill */}
+        <div className="flex items-center gap-3 min-w-0">
+          {repoDisplay ? (
+            <a
+              href={currentProject.githubUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/60 text-[11px] font-mono text-muted-foreground hover:text-foreground transition-all"
+              title="View on GitHub"
             >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        }
-      />
+              <GitFork className="h-3 w-3 text-amber-400 flex-shrink-0" />
+              <span className="truncate max-w-[140px]">{repoDisplay}</span>
+              <ExternalLink className="h-2.5 w-2.5 opacity-50 flex-shrink-0" />
+            </a>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <FolderTree className="h-3.5 w-3.5" />
+              <span className="font-medium">Code Visualisation</span>
+            </div>
+          )}
+        </div>
 
-      {/* Main Canvas Card */}
+        {/* Center: Mode Selector */}
+        <div className="flex items-center p-0.5 rounded-lg border border-border/50 bg-background/60 shadow-xs">
+          {modes.map((m) => {
+            const MIcon = m.icon;
+            const active = viewMode === m.key;
+            return (
+              <button
+                key={m.key}
+                onClick={() => setViewMode(m.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                  active
+                    ? "bg-muted text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title={m.label}
+              >
+                <MIcon className={`h-3.5 w-3.5 ${active ? m.accent : ""}`} />
+                <span className="hidden sm:inline">{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Fullscreen */}
+        <button
+          className="flex items-center justify-center h-7 w-7 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+
+      {/* ─── Canvas Area (fills remaining height) ─── */}
       {currentProject?.githubUrl ? (
-        <Card className="glass-premium overflow-hidden rounded-2xl border-border/60 shadow-xl animate-fade-up">
-          <CardContent className="p-0">
-            {viewMode === "architecture" && (
-              <ArchitectureOverview
-                architectureData={currentArchitectureData}
-                githubUrl={currentProject.githubUrl}
-                isLoading={isArchitectureLoading}
-                error={architectureError}
-                onRefresh={handleRefreshArchitecture}
-                isFullscreen={isFullscreen}
-              />
-            )}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {viewMode === "architecture" && (
+            <ArchitectureOverview
+              architectureData={currentArchitectureData}
+              githubUrl={currentProject.githubUrl}
+              isLoading={isArchitectureLoading}
+              error={architectureError}
+              onRefresh={handleRefreshArchitecture}
+              isFullscreen={isFullscreen}
+            />
+          )}
 
-            {viewMode === "dependencies" && (
-              <DependencyGraph
-                dependencyData={currentDependencyData}
-                githubUrl={currentProject.githubUrl}
-                isLoading={isDependencyLoading}
-                error={dependencyError}
-                onRefresh={handleRefreshDependencies}
-                isFullscreen={isFullscreen}
-              />
-            )}
+          {viewMode === "dependencies" && (
+            <DependencyGraph
+              dependencyData={currentDependencyData}
+              githubUrl={currentProject.githubUrl}
+              isLoading={isDependencyLoading}
+              error={dependencyError}
+              onRefresh={handleRefreshDependencies}
+              isFullscreen={isFullscreen}
+            />
+          )}
 
-            {viewMode === "tree" && (
-              <FileTreeExplorer fileTree={fileTree} isFullscreen={isFullscreen} />
-            )}
+          {viewMode === "tree" && (
+            <FileTreeExplorer fileTree={fileTree} isFullscreen={isFullscreen} />
+          )}
 
-            {viewMode === "diagram" && (
-              <ArchitectureMap fileTree={fileTree} isFullscreen={isFullscreen} />
-            )}
-          </CardContent>
-        </Card>
+          {viewMode === "diagram" && (
+            <ArchitectureMap fileTree={fileTree} isFullscreen={isFullscreen} />
+          )}
+        </div>
       ) : (
-        <Card className="glass border-border/50 rounded-2xl animate-fade-up">
-          <CardContent className="py-20 text-center max-w-lg mx-auto space-y-4">
-            <div className="mx-auto h-16 w-16 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-center shadow-xs">
-              <FolderTree className="h-8 w-8 text-muted-foreground opacity-60" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-sm space-y-4 animate-fade-up">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center">
+              <FolderTree className="h-7 w-7 text-muted-foreground/50" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-semibold text-foreground tracking-tight">
-                No GitHub Repository Connected
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                No Repository Connected
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Connect a GitHub repository in Project Settings or the project overview to automatically synthesize your architecture diagram and map complete code dependencies.
+                Connect a GitHub repository in Project Settings to generate architecture diagrams and dependency graphs.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -31,7 +31,6 @@ function DependencyGraphFlow({
   isLoading,
   error,
   onRefresh,
-  isFullscreen,
 }) {
   const reactFlowWrapper = useRef(null);
   const { fitView, zoomIn, zoomOut, setCenter } = useReactFlow();
@@ -41,7 +40,7 @@ function DependencyGraphFlow({
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [selectedExt, setSelectedExt] = useState("all");
   const [showCircularOnly, setShowCircularOnly] = useState(false);
-  const [hideIsolated, setHideIsolated] = useState(true); // Default hide isolated files to make diagram much cleaner!
+  const [hideIsolated, setHideIsolated] = useState(true);
   const [showMinimap, setShowMinimap] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(0.85);
@@ -150,8 +149,8 @@ function DependencyGraphFlow({
 
     setTimeout(() => {
       fitView({
-        padding: 0.15,
-        minZoom: 0.65, // Never shrink to illegible 15%!
+        padding: 0.12,
+        minZoom: 0.45,
         maxZoom: 1.1,
         duration: 400,
       });
@@ -179,7 +178,7 @@ function DependencyGraphFlow({
         ...node,
         style: {
           ...node.style,
-          opacity: match ? 1 : 0.12,
+          opacity: match ? 1 : 0.08,
           transition: "opacity 0.25s ease, filter 0.25s ease",
           filter: match ? "none" : "grayscale(90%)",
         },
@@ -205,9 +204,9 @@ function DependencyGraphFlow({
         animated: isConnected,
         style: {
           ...edge.style,
-          stroke: isConnected ? strokeColor : "#cbd5e1 dark:#3f3f46",
+          stroke: isConnected ? strokeColor : "#cbd5e1",
           strokeWidth: isConnected ? 3 : 1.2,
-          opacity: isConnected ? 1 : 0.15,
+          opacity: isConnected ? 1 : 0.12,
         },
       };
     });
@@ -236,7 +235,7 @@ function DependencyGraphFlow({
   );
 
   const handleResetView = () => {
-    fitView({ padding: 0.15, minZoom: 0.65, maxZoom: 1.1, duration: 300 });
+    fitView({ padding: 0.12, minZoom: 0.45, maxZoom: 1.1, duration: 300 });
   };
 
   const handleExportSVG = () => {
@@ -273,19 +272,19 @@ function DependencyGraphFlow({
 
   if (isLoading && rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 space-y-5 min-h-[550px]">
+      <div className="flex flex-col items-center justify-center h-full space-y-5">
         <div className="relative">
-          <div className="h-16 w-16 rounded-2xl border-2 border-cyan-500/40 bg-cyan-500/10 flex items-center justify-center animate-pulse">
-            <Cpu className="h-8 w-8 text-cyan-500" />
+          <div className="h-14 w-14 rounded-2xl border-2 border-cyan-500/40 bg-cyan-500/10 flex items-center justify-center animate-pulse">
+            <Cpu className="h-7 w-7 text-cyan-500" />
           </div>
-          <RefreshCw className="h-5 w-5 animate-spin text-cyan-500 absolute -bottom-1 -right-1" />
+          <RefreshCw className="h-4 w-4 animate-spin text-cyan-500 absolute -bottom-1 -right-1" />
         </div>
-        <div className="text-center max-w-sm space-y-1.5">
-          <h4 className="text-sm font-bold text-foreground tracking-tight">
-            Mapping Code Dependencies
+        <div className="text-center max-w-xs space-y-1">
+          <h4 className="text-sm font-semibold text-foreground tracking-tight">
+            Mapping Dependencies
           </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Parsing ES imports, exports, CommonJS require statements, and discovering cross-file references...
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Parsing imports, exports, and cross-file references...
           </p>
         </div>
       </div>
@@ -294,17 +293,17 @@ function DependencyGraphFlow({
 
   if (error && rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-        <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
-          <AlertCircle className="h-6 w-6 text-destructive" />
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <div className="h-11 w-11 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
+          <AlertCircle className="h-5 w-5 text-destructive" />
         </div>
-        <div className="text-center max-w-md space-y-1">
-          <h4 className="text-sm font-bold text-foreground">Dependency Mapping Failed</h4>
+        <div className="text-center max-w-sm space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">Dependency Mapping Failed</h4>
           <p className="text-xs text-muted-foreground">{error}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => onRefresh(true)} className="text-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Retry Mapping
+          Retry
         </Button>
       </div>
     );
@@ -312,19 +311,19 @@ function DependencyGraphFlow({
 
   if (rawNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-        <div className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border flex items-center justify-center">
-          <GitBranch className="h-6 w-6 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <div className="h-11 w-11 rounded-xl bg-muted/40 border-2 border-border flex items-center justify-center">
+          <GitBranch className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="text-center max-w-sm space-y-1">
-          <h4 className="text-sm font-bold text-foreground">No Dependency Graph Generated</h4>
+        <div className="text-center max-w-xs space-y-1">
+          <h4 className="text-sm font-semibold text-foreground">No Dependency Graph</h4>
           <p className="text-xs text-muted-foreground">
-            Perform static source-code analysis to discover actual module dependencies.
+            Analyze source code to discover module dependencies.
           </p>
         </div>
         <Button variant="default" size="sm" onClick={() => onRefresh(true)} className="text-xs font-semibold">
           <GitBranch className="h-3.5 w-3.5 mr-1.5" />
-          Analyze Code Dependencies
+          Analyze Dependencies
         </Button>
       </div>
     );
@@ -332,8 +331,7 @@ function DependencyGraphFlow({
 
   return (
     <div
-      className="relative flex flex-col w-full overflow-hidden"
-      style={{ height: isFullscreen ? "calc(100vh - 120px)" : "740px" }}
+      className="relative flex flex-col w-full h-full overflow-hidden"
       ref={reactFlowWrapper}
     >
       {/* Controls Bar */}
@@ -357,7 +355,7 @@ function DependencyGraphFlow({
       />
 
       {/* Stats and Filter Bar */}
-      <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-4 py-1.5 text-xs">
+      <div className="flex items-center justify-between border-b border-border/40 bg-muted/15 px-4 py-1.5 text-xs flex-shrink-0">
         <GraphStats
           mode="dependency"
           stats={statistics}
@@ -371,7 +369,7 @@ function DependencyGraphFlow({
           onToggleCircularOnly={() => setShowCircularOnly(!showCircularOnly)}
         />
 
-        {/* Clean View Toggle: Hide / Show Isolated Files */}
+        {/* Clean View Toggle */}
         <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/40 flex-shrink-0">
           <button
             onClick={() => setHideIsolated(!hideIsolated)}
@@ -382,13 +380,13 @@ function DependencyGraphFlow({
             }`}
             title="Toggle isolated files with zero connections"
           >
-            {hideIsolated ? "Filtered: Connected Only" : "Showing All (Incl. Isolated)"}
+            {hideIsolated ? "Connected Only" : "All Files"}
           </button>
         </div>
       </div>
 
-      {/* React Flow Canvas */}
-      <div className="relative flex-1 w-full h-full bg-slate-50/60 dark:bg-background/40">
+      {/* React Flow Canvas — fills all remaining space */}
+      <div className="relative flex-1 w-full min-h-0 bg-slate-50/40 dark:bg-background/30">
         <ReactFlow
           nodes={filteredNodes}
           edges={styledEdges}
@@ -398,22 +396,22 @@ function DependencyGraphFlow({
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onMoveEnd={onMoveEnd}
-          minZoom={0.2}
-          maxZoom={2.0}
+          minZoom={0.15}
+          maxZoom={2.5}
           defaultViewport={{ x: 0, y: 0, zoom: 0.85 }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="var(--border)" gap={24} size={1.2} />
+          <Background color="var(--border)" gap={28} size={1} />
           <Controls
             showInteractive={false}
-            className="!border-2 !border-border !bg-card !shadow-md !rounded-lg"
+            className="!border !border-border/60 !bg-card/90 !backdrop-blur-sm !shadow-lg !rounded-lg"
           />
           {showMinimap && (
             <MiniMap
               nodeStrokeColor="#64748b"
               nodeColor="#94a3b8"
               nodeBorderRadius={4}
-              className="!border-2 !border-border !bg-card !rounded-xl !shadow-xl"
+              className="!border !border-border/60 !bg-card/90 !backdrop-blur-sm !rounded-xl !shadow-xl"
             />
           )}
         </ReactFlow>
@@ -449,17 +447,17 @@ class VisualizationErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center p-16 space-y-4 min-h-[480px]">
-          <div className="h-12 w-12 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6 text-destructive" />
+        <div className="flex flex-col items-center justify-center h-full space-y-4">
+          <div className="h-11 w-11 rounded-xl bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
+            <AlertCircle className="h-5 w-5 text-destructive" />
           </div>
           <div className="text-center max-w-md space-y-1">
-            <h4 className="text-sm font-bold text-foreground">Dependency Diagram Render Error</h4>
+            <h4 className="text-sm font-semibold text-foreground">Render Error</h4>
             <p className="text-xs text-muted-foreground">{this.state.error?.message || "Could not render dependency graph."}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => this.setState({ hasError: false })} className="text-xs">
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Reload Diagram
+            Reload
           </Button>
         </div>
       );
